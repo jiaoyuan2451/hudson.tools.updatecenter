@@ -11,8 +11,7 @@
  *
  *    Winston Prakash
  *     
- *******************************************************************************/ 
-
+ *******************************************************************************/
 package org.hudsonci.update.client;
 
 import java.io.BufferedReader;
@@ -68,39 +67,49 @@ public class UpdateCenterUpdater {
     }
 
     public void checkForNewUpdates(String groupid) throws IOException {
-        System.out.println("Checking for updates at maven central (groupid: " + groupid);
-        UpdateSiteMetadata hudsonNewUpdates = UpdateCenterUtils.getNewUpdates(newUpdatesBaseUrl, groupid);
+        System.out.println("Checking for updates at maven central (groupid: " + groupid + ")");
+        try {
+            UpdateSiteMetadata hudsonNewUpdates = UpdateCenterUtils.getNewUpdates(newUpdatesBaseUrl, groupid);
 
-        for (String pluginName : hudsonNewUpdates.getPlugins().keySet()) {
-            Plugin newPlugin = hudsonNewUpdates.findPlugin(pluginName);
-            Plugin hudsonPlugin = hudsonUpdateSiteMetadata.findPlugin(pluginName);
-            if ((hudsonPlugin == null) || newPlugin.isNewerThan(hudsonPlugin)) {
-                update(hudsonPlugin, newPlugin, false);
+            for (String pluginName : hudsonNewUpdates.getPlugins().keySet()) {
+                Plugin newPlugin = hudsonNewUpdates.findPlugin(pluginName);
+                Plugin hudsonPlugin = hudsonUpdateSiteMetadata.findPlugin(pluginName);
+                if ((hudsonPlugin == null) || newPlugin.isNewerThan(hudsonPlugin)) {
+                    update(hudsonPlugin, newPlugin, false);
+                }
             }
+        } catch (Exception exc) {
+            System.out.println("Checking for updates at Maven Central Failed!.");
+            exc.printStackTrace();
         }
     }
 
-    public void checkForJenkinsUpdates() throws IOException {
+    public void checkForJenkinsUpdates() {
         System.out.println("Checking for updates at Jenkins Update Center.");
-        UpdateSiteMetadata jenkinsUpdateSiteMetadata = UpdateCenterUtils.parseFromUrl(jenkinsUpdateCenterURL);
+        try {
+            UpdateSiteMetadata jenkinsUpdateSiteMetadata = UpdateCenterUtils.parseFromUrl(jenkinsUpdateCenterURL);
 
-        List<String> updatablePlugins = new ArrayList<String>();
-        BufferedReader in = new BufferedReader(new FileReader(updatableJenkisPluginsList));
-        String updatablePlugin;
-        while ((updatablePlugin = in.readLine()) != null) {
-            updatablePlugins.add(updatablePlugin);
-        }
-        in.close();
+            List<String> updatablePlugins = new ArrayList<String>();
+            BufferedReader in = new BufferedReader(new FileReader(updatableJenkisPluginsList));
+            String updatablePlugin;
+            while ((updatablePlugin = in.readLine()) != null) {
+                updatablePlugins.add(updatablePlugin);
+            }
+            in.close();
 
-        for (String pluginName : jenkinsUpdateSiteMetadata.getPlugins().keySet()) {
-            if (updatablePlugins.contains(pluginName)) {
-                Plugin jenkinsPlugin = jenkinsUpdateSiteMetadata.findPlugin(pluginName);
-                Plugin hudsonPlugin = hudsonUpdateSiteMetadata.findPlugin(pluginName);
+            for (String pluginName : jenkinsUpdateSiteMetadata.getPlugins().keySet()) {
+                if (updatablePlugins.contains(pluginName)) {
+                    Plugin jenkinsPlugin = jenkinsUpdateSiteMetadata.findPlugin(pluginName);
+                    Plugin hudsonPlugin = hudsonUpdateSiteMetadata.findPlugin(pluginName);
 
-                if ((hudsonPlugin == null) || jenkinsPlugin.isNewerThan(hudsonPlugin)) {
-                    update(hudsonPlugin, jenkinsPlugin, true);
+                    if ((hudsonPlugin == null) || jenkinsPlugin.isNewerThan(hudsonPlugin)) {
+                        update(hudsonPlugin, jenkinsPlugin, true);
+                    }
                 }
             }
+        } catch (Exception exc) {
+            System.out.println("Checking for updates at Jenkins Update Center Failed!.");
+            exc.printStackTrace();
         }
     }
 
@@ -128,7 +137,7 @@ public class UpdateCenterUpdater {
         if (foundUpdates) {
             String newJson = UpdateCenterUtils.getAsString(hudsonUpdateSiteMetadata);
             newJson = "updateCenter.post(" + newJson + ");";
-            System.out.println(newJson);
+            //System.out.println(newJson);
             File newUpdateCenter = new File(hudsonWebFolder + "update-center_new.json");
             BufferedWriter out = new BufferedWriter(new FileWriter(newUpdateCenter));
             out.write(newJson);
@@ -149,11 +158,11 @@ public class UpdateCenterUpdater {
     public static void main(String[] args) throws IOException {
 
         UpdateCenterUpdater updateCenterUpdater = new UpdateCenterUpdater();
-        updateCenterUpdater.checkForJenkinsUpdates();
-        updateCenterUpdater.persistJson();
         updateCenterUpdater.checkForNewUpdates(jvnet_groupid);
         updateCenterUpdater.persistJson();
         updateCenterUpdater.checkForNewUpdates(hudsonci_groupid);
+        updateCenterUpdater.persistJson();
+        updateCenterUpdater.checkForJenkinsUpdates();
         updateCenterUpdater.persistJson();
     }
 }
