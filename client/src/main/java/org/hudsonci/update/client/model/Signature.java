@@ -17,12 +17,13 @@ package org.hudsonci.update.client.model;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
+import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 /**
  * Model representing Update Center signature 
  * @author Winston Prakash
  */
+@JsonIgnoreProperties({"correct_digest", "correct_signature"})
 public class Signature {
     
     private List<String> certificates = new ArrayList<String>();
